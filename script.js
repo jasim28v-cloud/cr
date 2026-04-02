@@ -1,4 +1,3 @@
-// ==================== Global Variables ====================
 let currentUser = null;
 let currentPostId = null;
 let currentChatUser = null;
@@ -10,12 +9,10 @@ let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 
-// Agora Variables
 let agoraClient = null;
 let localTracks = { videoTrack: null, audioTrack: null };
 let isCallActive = false;
 
-// ==================== Helper Functions ====================
 function showToast(message, duration = 2000) {
     const toast = document.getElementById('customToast');
     if (!toast) return;
@@ -65,7 +62,6 @@ function extractHashtags(text) {
     return hashtags.map(tag => tag.substring(1));
 }
 
-// ==================== Cloudinary Upload ====================
 async function uploadToCloudinary(file) {
     const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`;
     const formData = new FormData();
@@ -88,7 +84,6 @@ async function uploadToCloudinary(file) {
     }
 }
 
-// ==================== Voice Recording ====================
 async function startVoiceRecording() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -141,7 +136,6 @@ function toggleVoiceRecording() {
     }
 }
 
-// ==================== Agora Video Call ====================
 async function initAgoraCall() {
     if (!agoraClient) {
         agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -175,7 +169,6 @@ async function startVideoCallWithAgora(channelName, userId) {
         
         isCallActive = true;
         showToast('تم بدء المكالمة');
-        document.getElementById('videoCallModal')?.classList.add('open');
         
     } catch (error) {
         console.error('Error starting video call:', error);
@@ -191,10 +184,8 @@ async function endVideoCall() {
         isCallActive = false;
         showToast('تم إنهاء المكالمة');
     }
-    document.getElementById('videoCallModal')?.classList.remove('open');
 }
 
-// ==================== Theme Functions ====================
 window.toggleTheme = function() {
     document.body.classList.toggle('dark-mode');
     const isDark = document.body.classList.contains('dark-mode');
@@ -212,7 +203,6 @@ window.toggleTheme = function() {
     showToast(isDark ? 'الوضع الليلي' : 'الوضع النهاري');
 };
 
-// ==================== Logout Function ====================
 window.logout = async function() {
     try {
         await auth.signOut();
@@ -226,7 +216,6 @@ window.logout = async function() {
     }
 };
 
-// ==================== Auth Functions ====================
 window.switchAuth = function(form) {
     document.getElementById('loginForm').classList.remove('active');
     document.getElementById('registerForm').classList.remove('active');
@@ -260,33 +249,27 @@ window.login = async function() {
                 avatar: "",
                 cover: "",
                 verified: false,
-                isAdmin: email === ADMIN_EMAIL,
+                isAdmin: false,
                 blockedUsers: {},
                 createdAt: Date.now()
             });
-            currentUser.isAdmin = email === ADMIN_EMAIL;
+        }
+        
+        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+            showToast('🌟 مرحباً بك في لوحة التحكم يا مدير!');
+            await db.ref(`users/${currentUser.uid}`).update({ 
+                isAdmin: true, 
+                verified: true,
+                name: 'Admin GLOW'
+            });
+            currentUser.isAdmin = true;
+            currentUser.verified = true;
         }
         
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         
-        // ✅ AUTO OPEN ADMIN PANEL FOR ADMIN
-        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-            showToast('🌟 مرحباً بك مدير GLOW!');
-            await db.ref(`users/${currentUser.uid}`).update({ 
-                isAdmin: true, 
-                verified: true,
-                role: 'admin',
-                name: 'Admin GLOW'
-            });
-            currentUser.isAdmin = true;
-            currentUser.verified = true;
-            setTimeout(() => {
-                openAdminPanel();
-            }, 1000);
-        } else {
-            showToast(`مرحباً ${currentUser.displayName || 'مستخدم'}!`);
-        }
+        showToast(`مرحباً ${currentUser.displayName || currentUser.name || 'مستخدم'}!`);
         
         loadFeed();
         loadNotifications();
@@ -350,7 +333,6 @@ window.register = async function() {
     }
 };
 
-// ==================== Change Avatar & Cover ====================
 window.changeAvatar = async function() {
     const input = document.createElement('input');
     input.type = 'file';
@@ -362,7 +344,8 @@ window.changeAvatar = async function() {
             if (url) {
                 await db.ref(`users/${currentUser.uid}`).update({ avatar: url });
                 currentUser.avatar = url;
-                openProfile(currentProfileUser || currentUser.uid);
+                if (currentProfileUser) openProfile(currentProfileUser);
+                else openProfile(currentUser.uid);
                 showToast('تم تغيير الصورة الشخصية بنجاح');
             }
         }
@@ -381,7 +364,8 @@ window.changeCover = async function() {
             if (url) {
                 await db.ref(`users/${currentUser.uid}`).update({ cover: url });
                 currentUser.cover = url;
-                openProfile(currentProfileUser || currentUser.uid);
+                if (currentProfileUser) openProfile(currentProfileUser);
+                else openProfile(currentUser.uid);
                 showToast('تم تغيير صورة الغلاف بنجاح');
             }
         }
@@ -389,7 +373,6 @@ window.changeCover = async function() {
     input.click();
 };
 
-// ==================== Block User ====================
 async function blockUser(userId) {
     await db.ref(`users/${currentUser.uid}/blockedUsers/${userId}`).set(true);
     showToast('تم حظر المستخدم');
@@ -407,7 +390,6 @@ async function isBlocked(userId) {
     return snapshot.exists();
 }
 
-// ==================== Posts Functions ====================
 window.createPost = async function() {
     const text = document.getElementById('postText')?.value;
     if (!text && !selectedMediaFile) {
@@ -457,7 +439,7 @@ window.deletePost = async function(postId) {
     if (!confirm('هل أنت متأكد من حذف هذا المنشور؟')) return;
     const postSnapshot = await db.ref(`posts/${postId}`).once('value');
     const post = postSnapshot.val();
-    if (post.userId !== currentUser.uid && currentUser.email !== ADMIN_EMAIL && !currentUser.isAdmin) {
+    if (post.userId !== currentUser.uid && !currentUser.isAdmin) {
         showToast('لا يمكنك حذف منشور ليس لك');
         return;
     }
@@ -555,11 +537,11 @@ async function loadFeed() {
                             ${post.userAvatar ? `<img src="${post.userAvatar}">` : '<i class="fas fa-user text-white text-xl flex items-center justify-center h-full"></i>'}
                         </div>
                         <div>
-                            <div class="post-username">${escapeHtml(post.userName)} ${post.verified ? '<i class="fas fa-check-circle text-[#833ab4] text-xs"></i>' : ''}</div>
+                            <div class="post-username">${escapeHtml(post.userName)}</div>
                             <div class="post-time">${formatTime(post.timestamp)} ${post.edited ? '· معدل' : ''}</div>
                         </div>
                     </div>
-                    ${isOwner ? `<button class="post-menu" onclick="event.stopPropagation(); deletePost('${post.id}')"><i class="fas fa-trash-alt"></i></button>` : ''}
+                    ${(isOwner || currentUser?.isAdmin) ? `<button class="post-menu" onclick="event.stopPropagation(); deletePost('${post.id}')"><i class="fas fa-trash-alt"></i></button>` : ''}
                 </div>
                 ${post.mediaUrl ? `
                     ${post.mediaType === 'image' ? `<img src="${post.mediaUrl}" class="post-image" onclick="openImageModal('${post.mediaUrl}')">` : ''}
@@ -579,14 +561,12 @@ async function loadFeed() {
     feedContainer.innerHTML = html;
 }
 
-// ==================== Hashtag Search ====================
 window.searchHashtag = async function(tag) {
     openSearch();
     document.getElementById('searchInput').value = `#${tag}`;
     await searchAll();
 };
 
-// ==================== Comments Functions ====================
 window.openComments = async function(postId) {
     currentPostId = postId;
     document.getElementById('commentsPanel').classList.add('open');
@@ -659,7 +639,6 @@ window.addComment = async function() {
     showToast('تم إضافة التعليق');
 };
 
-// ==================== Profile Functions ====================
 window.openMyProfile = function() { if (currentUser) openProfile(currentUser.uid); };
 
 window.openProfile = async function(userId) {
@@ -668,7 +647,6 @@ window.openProfile = async function(userId) {
     const userData = snapshot.val();
     if (!userData) return;
     
-    // Update cover photo
     const profileCover = document.getElementById('profileCover');
     if (profileCover) {
         if (userData.cover) {
@@ -680,15 +658,12 @@ window.openProfile = async function(userId) {
         }
     }
     
-    // Update avatar
     const profileAvatarLarge = document.getElementById('profileAvatarLarge');
     profileAvatarLarge.innerHTML = userData.avatar ? `<img src="${userData.avatar}" style="width:100%;height:100%;object-fit:cover">` : '<i class="fas fa-user text-5xl text-white flex items-center justify-center h-full"></i>';
     
-    // Update name and bio
     document.getElementById('profileName').innerHTML = `${escapeHtml(userData.name)} ${userData.verified ? '<i class="fas fa-check-circle text-[#833ab4] text-sm"></i>' : ''}`;
     document.getElementById('profileBio').textContent = userData.bio || "مرحباً! أنا في GLOW ✨";
     
-    // Update stats
     const followersSnapshot = await db.ref(`followers/${userId}`).once('value');
     const followingSnapshot = await db.ref(`following/${userId}`).once('value');
     document.getElementById('profileFollowersCount').textContent = followersSnapshot.exists() ? Object.keys(followersSnapshot.val()).length : 0;
@@ -698,7 +673,6 @@ window.openProfile = async function(userId) {
     const posts = postsSnapshot.val();
     document.getElementById('profilePostsCount').textContent = posts ? Object.values(posts).filter(p => p.userId === userId).length : 0;
     
-    // Update buttons
     const buttonsDiv = document.getElementById('profileButtons');
     if (userId !== currentUser.uid) {
         const isFollowing = await checkIfFollowing(userId);
@@ -710,11 +684,15 @@ window.openProfile = async function(userId) {
             ${isBlockedUser ? `<button class="profile-btn" onclick="unblockUser('${userId}')">إلغاء الحظر</button>` : `<button class="profile-btn" onclick="blockUser('${userId}')">حظر</button>`}
         `;
     } else {
+        let adminButton = '';
+        if (currentUser.isAdmin || currentUser.email === ADMIN_EMAIL) {
+            adminButton = `<button class="profile-btn profile-btn-primary" onclick="openAdminPanel()"><i class="fas fa-cog"></i> لوحة التحكم</button>`;
+        }
         buttonsDiv.innerHTML = `
             <button class="profile-btn" onclick="openEditProfileModal()"><i class="fas fa-edit"></i> تعديل</button>
             <button class="profile-btn" onclick="changeAvatar()"><i class="fas fa-camera"></i> صورة</button>
             <button class="profile-btn" onclick="changeCover()"><i class="fas fa-image"></i> غلاف</button>
-            ${(currentUser.email === ADMIN_EMAIL || currentUser.isAdmin) ? `<button class="profile-btn profile-btn-primary" onclick="openAdminPanel()"><i class="fas fa-cog"></i> لوحة التحكم</button>` : ''}
+            ${adminButton}
         `;
     }
     
@@ -773,7 +751,6 @@ window.loadProfileMedia = async function(userId) {
     grid.innerHTML = html;
 };
 
-// ==================== Edit Profile ====================
 window.openEditProfileModal = function() {
     document.getElementById('editName').value = currentUser.displayName || currentUser.name;
     document.getElementById('editBio').value = currentUser.bio || '';
@@ -794,7 +771,6 @@ window.saveProfileEdit = async function() {
     showToast('تم حفظ التغييرات');
 };
 
-// ==================== Chat Functions ====================
 function getChatId(user1, user2) { return [user1, user2].sort().join('_'); }
 
 window.openChat = async function(userId) {
@@ -809,6 +785,7 @@ window.openChat = async function(userId) {
 
 async function loadChatMessages(userId) {
     const chatId = getChatId(currentUser.uid, userId);
+    db.ref(`chats/${chatId}`).off();
     db.ref(`chats/${chatId}`).on('value', (snapshot) => {
         const messages = snapshot.val();
         const container = document.getElementById('chatMessages');
@@ -852,7 +829,6 @@ window.sendChatImage = async function(input) {
     input.value = '';
 };
 
-// ==================== Conversations ====================
 window.openConversations = async function() {
     const conversationsList = document.getElementById('conversationsList');
     conversationsList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -865,7 +841,8 @@ window.openConversations = async function() {
         const otherUserId = user1 === currentUser.uid ? user2 : user1;
         const userSnapshot = await db.ref(`users/${otherUserId}`).once('value');
         const userData = userSnapshot.val();
-        const lastMessage = Object.values(messages).sort((a, b) => b.timestamp - a.timestamp)[0];
+        const messagesArray = Object.values(messages);
+        const lastMessage = messagesArray.sort((a, b) => b.timestamp - a.timestamp)[0];
         conversations.push({ userId: otherUserId, userData: userData, lastMessage: lastMessage, timestamp: lastMessage.timestamp });
     }
     conversations.sort((a, b) => b.timestamp - a.timestamp);
@@ -875,7 +852,7 @@ window.openConversations = async function() {
             <div class="post-avatar" style="width: 48px; height: 48px;">${conv.userData?.avatar ? `<img src="${conv.userData.avatar}">` : '<i class="fas fa-user text-white text-xl flex items-center justify-center h-full"></i>'}</div>
             <div style="flex: 1;">
                 <div style="font-weight: 600;">${escapeHtml(conv.userData?.name || 'مستخدم')}</div>
-                <div style="font-size: 12px; color: #8e8e8e;">${conv.lastMessage.text || conv.lastMessage.audioUrl ? 'رسالة صوتية' : 'صورة'}</div>
+                <div style="font-size: 12px; color: #8e8e8e;">${conv.lastMessage.text ? conv.lastMessage.text.substring(0, 30) : (conv.lastMessage.audioUrl ? 'رسالة صوتية' : 'صورة')}</div>
             </div>
         </div>`;
     }
@@ -883,7 +860,6 @@ window.openConversations = async function() {
     document.getElementById('conversationsPanel')?.classList.add('open');
 };
 
-// ==================== Notifications ====================
 async function loadNotifications() {
     if (!currentUser) return;
     db.ref(`notifications/${currentUser.uid}`).on('value', (snapshot) => {
@@ -925,7 +901,6 @@ window.openNotifications = async function() {
 
 window.markNotificationRead = async function(notifId) { await db.ref(`notifications/${currentUser.uid}/${notifId}`).update({ read: true }); loadNotifications(); };
 
-// ==================== Search ====================
 window.searchAll = async function() {
     const query = document.getElementById('searchInput')?.value.toLowerCase();
     if (!query) { document.getElementById('searchResults').innerHTML = ''; return; }
@@ -953,223 +928,50 @@ window.searchAll = async function() {
     document.getElementById('searchResults').innerHTML = html || '<div class="text-center p-4 text-gray-500">لا توجد نتائج</div>';
 };
 
-// ==================== ADMIN PANEL - FULL VERSION ====================
 window.openAdminPanel = async function() {
-    // Check if user is admin
-    if (currentUser?.email !== ADMIN_EMAIL && !currentUser?.isAdmin) {
-        showToast("🚫 غير مصرح لك بدخول لوحة التحكم");
+    if (currentUser.email !== ADMIN_EMAIL && !currentUser.isAdmin) {
+        showToast('🚫 غير مصرح لك بالدخول إلى لوحة التحكم');
         return;
     }
     
-    showToast("🔧 جاري تحميل لوحة التحكم...");
+    showToast('🔧 جاري تحميل لوحة التحكم...');
     
-    try {
-        // Get all data from Firebase
-        const usersSnapshot = await db.ref('users').once('value');
-        const postsSnapshot = await db.ref('posts').once('value');
-        const commentsSnapshot = await db.ref('comments').once('value');
-        const chatsSnapshot = await db.ref('chats').once('value');
-        const notificationsSnapshot = await db.ref('notifications').once('value');
-        
-        const users = usersSnapshot.val() || {};
-        const posts = postsSnapshot.val() || {};
-        const comments = commentsSnapshot.val() || {};
-        const chats = chatsSnapshot.val() || {};
-        const notifications = notificationsSnapshot.val() || {};
-        
-        // Calculate counts
-        const usersCount = Object.keys(users).length;
-        const postsCount = Object.keys(posts).length;
-        let commentsCount = 0;
-        for (const postId in comments) {
-            commentsCount += Object.keys(comments[postId]).length;
-        }
-        let messagesCount = 0;
-        for (const chatId in chats) {
-            messagesCount += Object.keys(chats[chatId]).length;
-        }
-        let notificationsCount = 0;
-        for (const userId in notifications) {
-            notificationsCount += Object.keys(notifications[userId]).length;
-        }
-        
-        // Update stats cards
-        document.getElementById('adminUsersCount').textContent = usersCount;
-        document.getElementById('adminPostsCount').textContent = postsCount;
-        document.getElementById('adminCommentsCount').textContent = commentsCount;
-        
-        // Add extra stats to the admin panel
-        const statsContainer = document.querySelector('.admin-stats');
-        if (statsContainer && !document.getElementById('extraStats')) {
-            statsContainer.innerHTML += `
-                <div class="admin-stat-card" style="background: linear-gradient(135deg, #fcb045, #fd1d1d);">
-                    <div class="admin-stat-number">${messagesCount}</div>
-                    <div class="admin-stat-label">رسائل</div>
-                </div>
-                <div class="admin-stat-card" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
-                    <div class="admin-stat-number">${notificationsCount}</div>
-                    <div class="admin-stat-label">إشعارات</div>
-                </div>
-            `;
-        }
-        
-        // Build users list
-        let usersHtml = '<div style="max-height: 300px; overflow-y: auto;">';
-        for (const [uid, user] of Object.entries(users)) {
-            const isVerified = user.verified || false;
-            const isAdminUser = user.isAdmin || (user.email === ADMIN_EMAIL);
-            usersHtml += `
-                <div class="admin-item">
-                    <div>
-                        <div class="admin-item-name">
-                            ${escapeHtml(user.name || 'مستخدم')}
-                            ${isAdminUser ? '<span style="background:#833ab4; color:white; padding:2px 6px; border-radius:10px; font-size:10px; margin-left:5px;">مدير</span>' : ''}
-                            ${isVerified ? '<span style="background:#4caf50; color:white; padding:2px 6px; border-radius:10px; font-size:10px; margin-left:5px;">موثق</span>' : ''}
-                        </div>
-                        <div class="admin-item-email">${escapeHtml(user.email || uid)}</div>
-                    </div>
-                    <div>
-                        ${!isVerified ? `<button class="admin-verify-btn" onclick="verifyUser('${uid}')"><i class="fas fa-check"></i> توثيق</button>` : ''}
-                        <button class="admin-delete-btn" onclick="deleteUserAccount('${uid}')"><i class="fas fa-trash"></i> حذف</button>
-                    </div>
-                </div>
-            `;
-        }
-        usersHtml += '</div>';
-        document.getElementById('adminUsersList').innerHTML = usersHtml || '<div class="text-center p-4">لا يوجد مستخدمين</div>';
-        
-        // Build posts list
-        let postsHtml = '<div style="max-height: 300px; overflow-y: auto;">';
-        const sortedPosts = Object.values(posts).sort((a, b) => b.timestamp - a.timestamp).slice(0, 30);
-        for (const post of sortedPosts) {
-            postsHtml += `
-                <div class="admin-item">
-                    <div>
-                        <div class="admin-item-name">${escapeHtml(post.userName || 'مستخدم')}</div>
-                        <div class="admin-item-email">${escapeHtml(post.text?.substring(0, 60) || 'بدون نص')}...</div>
-                        <div style="font-size: 10px; color: #8e8e8e;">${new Date(post.timestamp).toLocaleString('ar')}</div>
-                    </div>
-                    <button class="admin-delete-btn" onclick="deletePostFromAdmin('${post.id}')"><i class="fas fa-trash"></i> حذف</button>
-                </div>
-            `;
-        }
-        postsHtml += '</div>';
-        document.getElementById('adminPostsList').innerHTML = postsHtml || '<div class="text-center p-4">لا توجد منشورات</div>';
-        
-        // Add delete all data button
-        const adminPanel = document.getElementById('adminPanel');
-        if (adminPanel && !document.getElementById('adminDangerZone')) {
-            const dangerZone = document.createElement('div');
-            dangerZone.id = 'adminDangerZone';
-            dangerZone.style.padding = '16px';
-            dangerZone.style.borderTop = '1px solid #fd1d1d';
-            dangerZone.style.marginTop = '16px';
-            dangerZone.innerHTML = `
-                <h4 style="font-weight: 600; margin-bottom: 12px; color: #fd1d1d;"><i class="fas fa-exclamation-triangle"></i> منطقة الخطر</h4>
-                <button onclick="deleteAllData()" style="background: #fd1d1d; color: white; border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer; width: 100%;">
-                    <i class="fas fa-database"></i> حذف جميع البيانات (مستخدمين، منشورات، تعليقات)
-                </button>
-            `;
-            adminPanel.querySelector('.chat-header').after(dangerZone);
-        }
-        
-        document.getElementById('adminPanel').classList.add('open');
-        
-    } catch (error) {
-        console.error("Admin panel error:", error);
-        showToast("خطأ في تحميل لوحة التحكم: " + error.message);
-    }
-};
-
-// Admin functions
-window.verifyUser = async function(userId) {
-    if (currentUser?.email !== ADMIN_EMAIL && !currentUser?.isAdmin) {
-        showToast("غير مصرح لك");
-        return;
-    }
-    await db.ref(`users/${userId}`).update({ verified: true });
-    showToast("✅ تم توثيق المستخدم");
-    openAdminPanel();
-};
-
-window.deleteUserAccount = async function(userId) {
-    if (currentUser?.email !== ADMIN_EMAIL && !currentUser?.isAdmin) {
-        showToast("غير مصرح لك");
-        return;
-    }
-    if (confirm("⚠️ هل أنت متأكد من حذف هذا المستخدم وجميع بياناته؟")) {
-        // Delete user's posts
-        const postsSnapshot = await db.ref('posts').once('value');
-        const posts = postsSnapshot.val();
-        for (const [postId, post] of Object.entries(posts || {})) {
-            if (post.userId === userId) {
-                await db.ref(`posts/${postId}`).remove();
-            }
-        }
-        // Delete user's comments
-        const commentsSnapshot = await db.ref('comments').once('value');
-        const comments = commentsSnapshot.val();
-        for (const [postId, postComments] of Object.entries(comments || {})) {
-            for (const [commentId, comment] of Object.entries(postComments || {})) {
-                if (comment.userId === userId) {
-                    await db.ref(`comments/${postId}/${commentId}`).remove();
-                }
-            }
-        }
-        // Delete user
-        await db.ref(`users/${userId}`).remove();
-        showToast("🗑️ تم حذف المستخدم");
-        openAdminPanel();
-    }
-};
-
-window.deletePostFromAdmin = async function(postId) {
-    if (currentUser?.email !== ADMIN_EMAIL && !currentUser?.isAdmin) {
-        showToast("غير مصرح لك");
-        return;
-    }
-    if (confirm("⚠️ هل أنت متأكد من حذف هذا المنشور؟")) {
-        await db.ref(`posts/${postId}`).remove();
-        showToast("🗑️ تم حذف المنشور");
-        openAdminPanel();
-    }
-};
-
-window.deleteAllData = async function() {
-    if (currentUser?.email !== ADMIN_EMAIL && !currentUser?.isAdmin) {
-        showToast("غير مصرح لك");
-        return;
-    }
-    if (confirm("🚨 تحذير نهائي! هذا سيحذف جميع المستخدمين والمنشورات والتعليقات والرسائل والإشعارات. لا يمكن التراجع. هل أنت متأكد؟")) {
-        if (confirm("✅ تأكيد نهائي: اكتب 'نعم' للمتابعة")) {
-            const confirmation = prompt("اكتب 'نعم' لتأكيد حذف جميع البيانات:");
-            if (confirmation === "نعم") {
-                showToast("جاري حذف جميع البيانات...");
-                await db.ref('users').remove();
-                await db.ref('posts').remove();
-                await db.ref('comments').remove();
-                await db.ref('chats').remove();
-                await db.ref('notifications').remove();
-                await db.ref('followers').remove();
-                await db.ref('following').remove();
-                await db.ref('stories').remove();
-                await db.ref('hashtags').remove();
-                showToast("✅ تم حذف جميع البيانات بنجاح");
-                setTimeout(() => {
-                    logout();
-                }, 2000);
-            } else {
-                showToast("تم إلغاء العملية");
+    const usersSnapshot = await db.ref('users').once('value');
+    const postsSnapshot = await db.ref('posts').once('value');
+    const commentsSnapshot = await db.ref('comments').once('value');
+    const usersCount = usersSnapshot.exists() ? Object.keys(usersSnapshot.val()).length : 0;
+    const postsCount = postsSnapshot.exists() ? Object.keys(postsSnapshot.val()).length : 0;
+    let commentsCount = 0;
+    if (commentsSnapshot.exists()) for (const pc of Object.values(commentsSnapshot.val())) commentsCount += Object.keys(pc).length;
+    document.getElementById('adminUsersCount').textContent = usersCount;
+    document.getElementById('adminPostsCount').textContent = postsCount;
+    document.getElementById('adminCommentsCount').textContent = commentsCount;
+    
+    let usersHtml = '';
+    if (usersSnapshot.exists()) {
+        for (const [uid, user] of Object.entries(usersSnapshot.val())) {
+            if (uid !== currentUser.uid) {
+                usersHtml += `<div class="admin-item"><div><div class="admin-item-name">${escapeHtml(user.name)}</div><div class="admin-item-email">${escapeHtml(user.email)}</div></div><div>${!user.verified ? `<button class="admin-verify-btn" onclick="verifyUser('${uid}')">✅ توثيق</button>` : '<span class="text-green-500">✅ موثق</span>'}<button class="admin-delete-btn" onclick="deleteUser('${uid}')">🗑️ حذف</button></div></div>`;
             }
         }
     }
+    document.getElementById('adminUsersList').innerHTML = usersHtml || '<div class="text-center p-4 text-gray-500">لا يوجد مستخدمين</div>';
+    
+    let postsHtml = '';
+    if (postsSnapshot.exists()) {
+        for (const post of Object.values(postsSnapshot.val()).sort((a, b) => b.timestamp - a.timestamp).slice(0, 20)) {
+            postsHtml += `<div class="admin-item"><div><div class="admin-item-name">${escapeHtml(post.userName)}</div><div class="admin-item-email">${escapeHtml(post.text?.substring(0, 50) || '')}</div></div><button class="admin-delete-btn" onclick="deletePost('${post.id}')">🗑️ حذف</button></div>`;
+        }
+    }
+    document.getElementById('adminPostsList').innerHTML = postsHtml || '<div class="text-center p-4 text-gray-500">لا توجد منشورات</div>';
+    
+    document.getElementById('adminPanel').classList.add('open');
 };
 
-window.closeAdmin = function() { 
-    document.getElementById('adminPanel').classList.remove('open'); 
-};
+window.verifyUser = async function(userId) { await db.ref(`users/${userId}`).update({ verified: true }); showToast('تم توثيق المستخدم'); openAdminPanel(); };
+window.deleteUser = async function(userId) { if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) { await db.ref(`users/${userId}`).remove(); showToast('تم حذف المستخدم'); openAdminPanel(); } };
+window.closeAdmin = function() { document.getElementById('adminPanel').classList.remove('open'); };
 
-// ==================== Video Call ====================
 window.startVideoCall = async function(userId) {
     const channelName = `call_${getChatId(currentUser.uid, userId)}`;
     await startVideoCallWithAgora(channelName, currentUser.uid);
@@ -1179,7 +981,6 @@ window.startVideoCall = async function(userId) {
 
 window.endVideoCall = endVideoCall;
 
-// ==================== Followers List ====================
 window.openFollowersList = async function(type) {
     document.getElementById('followersTitle').textContent = type === 'followers' ? 'المتابعون' : 'المتابَعون';
     const refPath = type === 'followers' ? `followers/${currentProfileUser}` : `following/${currentProfileUser}`;
@@ -1200,17 +1001,20 @@ window.openFollowersList = async function(type) {
     document.getElementById('followersPanel')?.classList.add('open');
 };
 
-// ==================== Stories ====================
 window.openStories = async function() { await loadStories(); document.getElementById('storiesPanel')?.classList.add('open'); };
 async function loadStories() {
     const snapshot = await db.ref('stories').once('value');
     const stories = snapshot.val();
     const container = document.getElementById('storiesList');
     container.innerHTML = `<div class="story-card" onclick="addStory()"><div class="add-story-btn"><i class="fas fa-plus"></i></div><div class="story-name">إضافة قصة</div></div>`;
-    if (stories) for (const [storyId, story] of Object.entries(stories)) {
-        const userSnapshot = await db.ref(`users/${story.userId}`).once('value');
-        const userData = userSnapshot.val();
-        if (Date.now() - story.timestamp < 86400000) container.innerHTML += `<div class="story-card" onclick="viewStory('${storyId}')"><div class="story-ring"><div class="story-avatar" style="background-image: url('${story.mediaUrl}'); background-size: cover; background-position: center;"></div></div><div class="story-name">${escapeHtml(userData?.name || '')}</div></div>`;
+    if (stories) {
+        for (const [storyId, story] of Object.entries(stories)) {
+            const userSnapshot = await db.ref(`users/${story.userId}`).once('value');
+            const userData = userSnapshot.val();
+            if (Date.now() - story.timestamp < 86400000) {
+                container.innerHTML += `<div class="story-card" onclick="viewStory('${storyId}')"><div class="story-ring"><div class="story-avatar" style="background-image: url('${story.mediaUrl}'); background-size: cover; background-position: center;"></div></div><div class="story-name">${escapeHtml(userData?.name || '')}</div></div>`;
+            }
+        }
     }
 }
 window.addStory = async function() {
@@ -1232,12 +1036,19 @@ window.addStory = async function() {
 };
 function viewStory(storyId) { showToast('مشاهدة القصة قريباً...'); }
 
-// ==================== Panel Controls ====================
 window.closeCompose = function() { document.getElementById('composeModal').classList.remove('open'); document.getElementById('postText').value = ''; document.getElementById('mediaPreview').innerHTML = ''; document.getElementById('mediaPreview').style.display = 'none'; selectedMediaFile = null; editingPostId = null; };
 window.openCompose = function() { document.getElementById('composeModal').classList.add('open'); };
 window.closeComments = function() { document.getElementById('commentsPanel').classList.remove('open'); currentPostId = null; };
 window.closeProfile = function() { document.getElementById('profilePanel').classList.remove('open'); };
-window.closeChat = function() { document.getElementById('chatPanel').classList.remove('open'); if (isRecording) stopVoiceRecording(); currentChatUser = null; };
+window.closeChat = function() { 
+    document.getElementById('chatPanel').classList.remove('open'); 
+    if (isRecording) stopVoiceRecording(); 
+    if (currentChatUser) {
+        const chatId = getChatId(currentUser.uid, currentChatUser.uid);
+        db.ref(`chats/${chatId}`).off();
+    }
+    currentChatUser = null; 
+};
 window.closeConversations = function() { document.getElementById('conversationsPanel').classList.remove('open'); };
 window.closeNotifications = function() { document.getElementById('notificationsPanel').classList.remove('open'); };
 window.closeSearch = function() { document.getElementById('searchPanel').classList.remove('open'); document.getElementById('searchInput').value = ''; document.getElementById('searchResults').innerHTML = ''; };
@@ -1245,7 +1056,6 @@ window.openSearch = function() { document.getElementById('searchPanel').classLis
 window.closeStories = function() { document.getElementById('storiesPanel').classList.remove('open'); };
 window.closeFollowers = function() { document.getElementById('followersPanel').classList.remove('open'); };
 window.goToHome = function() { switchTab('home'); };
-window.goBack = function() { const panels = ['composeModal','commentsPanel','profilePanel','chatPanel','conversationsPanel','notificationsPanel','searchPanel','storiesPanel','followersPanel','adminPanel']; for (const p of panels) { const el = document.getElementById(p); if (el?.classList.contains('open')) { el.classList.remove('open'); return; } } };
 window.switchTab = function(tab) { if (tab === 'home') loadFeed(); };
 window.previewMedia = function(input, type) {
     const file = input.files[0];
@@ -1261,9 +1071,7 @@ window.previewMedia = function(input, type) {
         reader.readAsDataURL(file);
     }
 };
-window.toggleVoiceRecording = toggleVoiceRecording;
 
-// ==================== Auth State Listener ====================
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
@@ -1291,76 +1099,8 @@ auth.onAuthStateChanged(async (user) => {
         if (savedTheme === 'dark') document.body.classList.add('dark-mode');
         loadFeed();
         loadNotifications();
-        
-        // Auto open admin panel if admin
-        if (user.email === ADMIN_EMAIL) {
-            setTimeout(() => {
-                openAdminPanel();
-            }, 1500);
-        }
     } else {
         document.getElementById('authScreen').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
     }
 });
-
-// Export all functions to window
-window.switchAuth = switchAuth;
-window.login = login;
-window.register = register;
-window.createPost = createPost;
-window.deletePost = deletePost;
-window.likePost = likePost;
-window.sharePost = sharePost;
-window.openComments = openComments;
-window.addComment = addComment;
-window.openMyProfile = openMyProfile;
-window.openProfile = openProfile;
-window.toggleFollow = toggleFollow;
-window.openEditProfileModal = openEditProfileModal;
-window.closeEditProfileModal = closeEditProfileModal;
-window.saveProfileEdit = saveProfileEdit;
-window.changeAvatar = changeAvatar;
-window.changeCover = changeCover;
-window.openChat = openChat;
-window.sendChatMessage = sendChatMessage;
-window.sendChatImage = sendChatImage;
-window.openConversations = openConversations;
-window.openNotifications = openNotifications;
-window.markNotificationRead = markNotificationRead;
-window.searchAll = searchAll;
-window.searchHashtag = searchHashtag;
-window.openFollowersList = openFollowersList;
-window.openStories = openStories;
-window.addStory = addStory;
-window.closeCompose = closeCompose;
-window.openCompose = openCompose;
-window.closeComments = closeComments;
-window.closeProfile = closeProfile;
-window.closeChat = closeChat;
-window.closeConversations = closeConversations;
-window.closeNotifications = closeNotifications;
-window.closeSearch = closeSearch;
-window.openSearch = openSearch;
-window.closeStories = closeStories;
-window.closeFollowers = closeFollowers;
-window.goToHome = goToHome;
-window.goBack = goBack;
-window.switchTab = switchTab;
-window.previewMedia = previewMedia;
-window.toggleTheme = toggleTheme;
-window.openImageModal = openImageModal;
-window.closeImageModal = closeImageModal;
-window.blockUser = blockUser;
-window.unblockUser = unblockUser;
-window.startVideoCall = startVideoCall;
-window.endVideoCall = endVideoCall;
-window.openAdminPanel = openAdminPanel;
-window.closeAdmin = closeAdmin;
-window.verifyUser = verifyUser;
-window.deleteUserAccount = deleteUserAccount;
-window.deletePostFromAdmin = deletePostFromAdmin;
-window.deleteAllData = deleteAllData;
-window.loadProfileMedia = loadProfileMedia;
-window.toggleVoiceRecording = toggleVoiceRecording;
-window.logout = logout;
