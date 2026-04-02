@@ -1,0 +1,17 @@
+{
+  "name": "glow-social-platform",
+  "version": "1.0.0",
+  "description": "GLOW - منصة اجتماعية عصرية",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx live-server --port=3000"
+  },
+  "keywords": ["social", "media", "chat", "stories", "video-call"],
+  "author": "GLOW Team",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.0"
+  }
+}
