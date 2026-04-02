@@ -26,7 +26,6 @@
             min-height: 100vh;
         }
 
-        /* Dark Mode */
         body.dark-mode {
             background: #000000;
             color: #ffffff;
@@ -67,7 +66,6 @@
             border-bottom: 1px solid #262626;
         }
 
-        /* Auth Screen */
         .auth-screen {
             position: fixed;
             inset: 0;
@@ -132,14 +130,12 @@
         .auth-link { margin-top: 28px; color: #8e8e8e; font-size: 13px; }
         .auth-link a { color: #833ab4; text-decoration: none; font-weight: 600; cursor: pointer; }
 
-        /* Main App */
         #mainApp { 
             display: none; 
             min-height: 100vh;
             padding-bottom: 70px;
         }
 
-        /* Top Bar */
         .top-bar {
             position: sticky;
             top: 0;
@@ -183,7 +179,6 @@
             justify-content: center;
         }
 
-        /* Profile Cover */
         .profile-cover {
             width: 100%;
             height: 200px;
@@ -279,6 +274,7 @@
             display: flex;
             gap: 10px;
             margin-top: 16px;
+            flex-wrap: wrap;
         }
         .profile-btn {
             flex: 1;
@@ -289,6 +285,7 @@
             cursor: pointer;
             border: 1px solid #dbdbdb;
             background: none;
+            min-width: 70px;
         }
         .profile-btn-primary {
             background: linear-gradient(135deg, #833ab4, #fd1d1d);
@@ -336,7 +333,6 @@
             object-fit: cover;
         }
 
-        /* Post Card */
         .feed-container { padding: 0 0 20px; max-width: 600px; margin: 0 auto; }
         .post-card {
             background: #ffffff;
@@ -430,7 +426,6 @@
             cursor: pointer;
         }
 
-        /* Compose Modal */
         .compose-modal {
             position: fixed;
             inset: 0;
@@ -495,7 +490,6 @@
             color: #262626;
         }
 
-        /* Chat Panel */
         .chat-panel {
             position: fixed;
             inset: 0;
@@ -598,7 +592,6 @@
             100% { transform: scale(1.2); opacity: 1; }
         }
 
-        /* Bottom Nav */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -626,7 +619,6 @@
         body.dark-mode .nav-item { color: #ffffff; }
         .nav-item.active { color: #833ab4; }
 
-        /* Admin Panel */
         .admin-panel {
             position: fixed;
             inset: 0;
@@ -659,6 +651,8 @@
             align-items: center;
             padding: 12px;
             border-bottom: 1px solid #dbdbdb;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .admin-item-name { font-weight: 600; font-size: 13px; }
         .admin-item-email { font-size: 11px; color: #8e8e8e; }
@@ -682,7 +676,6 @@
             margin-right: 8px;
         }
 
-        /* Followers & Search Items */
         .follower-item {
             display: flex;
             align-items: center;
@@ -728,7 +721,6 @@
         }
         .story-name { font-size: 11px; text-align: center; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Modals */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -783,7 +775,6 @@
 </head>
 <body>
 
-<!-- Auth Screen -->
 <div id="authScreen" class="auth-screen">
     <div class="auth-card">
         <h1>GLOW</h1>
@@ -818,7 +809,6 @@
     </div>
 </div>
 
-<!-- Main App -->
 <div id="mainApp">
     <div class="top-bar">
         <div class="logo" onclick="goToHome()">GLOW</div>
@@ -845,7 +835,6 @@
         <button class="nav-item" onclick="openMyProfile()"><i class="fas fa-user-circle"></i></button>
     </div>
 
-    <!-- Compose Modal -->
     <div id="composeModal" class="compose-modal">
         <div class="compose-content">
             <div class="compose-header">
@@ -866,7 +855,6 @@
         </div>
     </div>
 
-    <!-- Comments Panel -->
     <div id="commentsPanel" class="chat-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">التعليقات</h3>
@@ -879,20 +867,17 @@
         </div>
     </div>
 
-    <!-- Profile Panel with Cover Photo -->
     <div id="profilePanel" class="chat-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">الملف الشخصي</h3>
             <button onclick="closeProfile()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
         </div>
         <div style="overflow-y: auto;">
-            <!-- Cover Photo -->
             <div id="profileCover" class="profile-cover" onclick="changeCover()">
                 <div class="profile-cover-edit" onclick="event.stopPropagation(); changeCover()">
                     <i class="fas fa-camera"></i>
                 </div>
             </div>
-            <!-- Avatar -->
             <div class="profile-avatar-wrapper">
                 <div class="profile-avatar-large" id="profileAvatarLarge" onclick="changeAvatar()">
                     <i class="fas fa-user text-5xl text-white flex items-center justify-center h-full"></i>
@@ -901,7 +886,6 @@
                     <i class="fas fa-camera fa-sm"></i>
                 </div>
             </div>
-            <!-- Profile Info -->
             <div class="profile-info">
                 <div class="profile-name" id="profileName"></div>
                 <div class="profile-bio" id="profileBio"></div>
@@ -921,7 +905,6 @@
                 </div>
                 <div id="profileButtons" class="profile-buttons"></div>
             </div>
-            <!-- Tabs -->
             <div class="profile-tabs">
                 <button class="profile-tab active" onclick="loadProfilePosts(currentProfileUser)"><i class="fas fa-table-cells-large"></i> المنشورات</button>
                 <button class="profile-tab" onclick="loadProfileMedia(currentProfileUser)"><i class="fas fa-clapperboard"></i> الوسائط</button>
@@ -930,7 +913,6 @@
         </div>
     </div>
 
-    <!-- Edit Profile Modal -->
     <div id="editProfileModal" class="modal-overlay">
         <div class="modal-content">
             <div style="text-align: center; margin-bottom: 20px;"><h3 style="font-weight: 600;">تعديل الملف الشخصي</h3></div>
@@ -943,7 +925,6 @@
         </div>
     </div>
 
-    <!-- Chat Panel -->
     <div id="chatPanel" class="chat-panel">
         <div class="chat-header">
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -966,7 +947,6 @@
         </div>
     </div>
 
-    <!-- Conversations Panel -->
     <div id="conversationsPanel" class="chat-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">الرسائل</h3>
@@ -975,7 +955,6 @@
         <div id="conversationsList" style="padding: 12px;"></div>
     </div>
 
-    <!-- Followers Panel -->
     <div id="followersPanel" class="chat-panel">
         <div class="chat-header">
             <h3 id="followersTitle" style="font-weight: 600;">المتابعون</h3>
@@ -984,7 +963,6 @@
         <div id="followersList" style="padding: 12px;"></div>
     </div>
 
-    <!-- Notifications Panel -->
     <div id="notificationsPanel" class="chat-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">الإشعارات</h3>
@@ -993,7 +971,6 @@
         <div id="notificationsList" style="padding: 12px;"></div>
     </div>
 
-    <!-- Search Panel -->
     <div id="searchPanel" class="chat-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">بحث</h3>
@@ -1003,7 +980,6 @@
         <div id="searchResults" style="padding: 12px;"></div>
     </div>
 
-    <!-- Stories Panel -->
     <div id="storiesPanel" class="chat-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">القصص</h3>
@@ -1012,7 +988,6 @@
         <div id="storiesList" style="padding: 16px; display: flex; gap: 16px; overflow-x: auto;"></div>
     </div>
 
-    <!-- Admin Panel -->
     <div id="adminPanel" class="admin-panel">
         <div class="chat-header">
             <h3 style="font-weight: 600;">🔧 لوحة التحكم</h3>
@@ -1033,7 +1008,6 @@
         </div>
     </div>
 
-    <!-- Image Modal -->
     <div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
         <div class="close-modal" onclick="closeImageModal()" style="position: absolute; top: 20px; right: 20px; font-size: 30px; cursor: pointer; color: white;">&times;</div>
         <img id="modalImage" style="max-width: 95%; max-height: 95%; object-fit: contain;">
